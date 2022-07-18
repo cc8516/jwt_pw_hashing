@@ -57,6 +57,7 @@
           super();
           this.state = {
             auth: {},
+            notes: [],
           };
           this.signIn = this.signIn.bind(this);
           this.logout = this.logout.bind(this);
@@ -67,14 +68,25 @@
         }
         async attemptTokenLogin() {
           const token = window.localStorage.getItem("token");
-          //   const jwt = require("jsonwebtoken");
-          //   const token = jwt.sign();
+
           if (token) {
             const response = await axios.get("/api/auth", {
               headers: {
                 authorization: token,
               },
             });
+
+            // console.log("HERE!!!!", response.data);
+            const userId = response.data.id;
+            // console.log("HERE!!!!", userId);
+            const notes = await axios.get(`/api/users/${userId}/notes`, {
+              headers: {
+                authorization: token,
+              },
+            });
+
+            this.setState({ notes: notes.data });
+
             this.setState({ auth: response.data });
           }
         }
@@ -84,12 +96,14 @@
         async signIn(credentials) {
           let response = await axios.post("/api/auth", credentials);
           const { token } = response.data;
+
           window.localStorage.setItem("token", token);
           this.attemptTokenLogin();
         }
         render() {
-          const { auth } = this.state;
+          const { auth, notes } = this.state;
           const { signIn, logout } = this;
+
           if (!auth.id) {
             return <SignIn signIn={signIn} />;
           } else {
@@ -97,6 +111,11 @@
               <div>
                 Welcome {auth.username}
                 <button onClick={logout}>Logout</button>
+                <ul>
+                  {notes.map((note) => (
+                    <li key={note.id}>{note.text}</li>
+                  ))}
+                </ul>
               </div>
             );
           }
